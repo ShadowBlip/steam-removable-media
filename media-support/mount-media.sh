@@ -8,7 +8,7 @@
 
 usage()
 {
-    echo "Usage: $0 {add|remove} device_name (e.g. sdb1)"
+    echo "Usage: $0 {add|remove} partition_name (e.g. sdb1)"
     exit 1
 }
 
@@ -71,6 +71,7 @@ do_mount()
 
     # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
     if [[ ${ID_FS_TYPE} != "ext4" ]]; then
+      echo "$DEVICE does not have an ext4 filesystem. Aborting..."
       exit 1
     fi
 
