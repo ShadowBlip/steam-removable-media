@@ -12,18 +12,21 @@ fi
 
 FILE="/etc/removable-libraries"
 PART=$1
-DEVICE="/dev/$PART"
+PART_PATH="/dev/$PART"
 
-if [[ ! -e $DEVICE ]]; then
-  echo "$DEVICE not found. Aborting..."
+# Check if device exists.
+if [[ ! -e $PART_PATH ]]; then
+  echo "$PART not found. Aborting..."
   exit 1
 fi
+
 # Get info for this drive: $ID_FS_TYPE
-eval $(/sbin/blkid -o udev ${DEVICE})
+eval $(/sbin/blkid -o udev ${PART_PATH})
+echo ${ID_FS_TYPE}
 
 # Steam only supports ext4 right now.
 if [[ ${ID_FS_TYPE} != "ext4" ]]; then
-  echo "$DEVICE does not have an ext4 filesystem. Aborting..."
+  echo "$PART does not have an ext4 filesystem. It uses ${ID_FS_TYPE} and is not supported. Aborting..."
   exit 1
 fi
 
@@ -35,5 +38,7 @@ fi
 
 # Mount service checks for UUID before adding the drive to steam.
 echo "Initializing steam library."
-PART_UUID=$(blkid -o value -s UUID /dev/${PART})
-grep -qxF ${PART_UUID} ${FILE} || echo ${PART_UUID} >> ${FILE}
+DEV_UUID=$(blkid -o value -s UUID $PART_PARTH)
+grep -qxF ${DEV_UUID} ${FILE} || echo ${DEV_UUID} >> ${FILE}
+
+exit 0

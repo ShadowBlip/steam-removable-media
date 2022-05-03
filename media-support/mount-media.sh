@@ -17,17 +17,17 @@ if [[ $# -ne 2 ]]; then
 fi
 
 ACTION=$1
-DEVBASE=$2
-DEVICE="/dev/${DEVBASE}"
+PART=$2
+PART_PATH="/dev/${PART}"
 
 # See if this drive is already mounted, and if so where
-MOUNT_POINT=$(/bin/mount | /bin/grep ${DEVICE} | /usr/bin/awk '{ print $3 }')
+MOUNT_POINT=$(/bin/mount | /bin/grep ${PART_PATH} | /usr/bin/awk '{ print $3 }')
 
 # See if this device has been initialized
-PART_UUID=$(blkid -o value -s UUID ${DEVICE})
+PART_UUID=$(blkid -o value -s UUID ${PART_PATH})
 FILE="/etc/removable-libraries"
 if [[ -e $(grep -L "$PART_UUID" $FILE) ]]; then
-    echo "Device $DEVICE has not been initialized. Exiting."
+    echo "Device $PART has not been initialized. Exiting."
     exit 1
 fi
 
@@ -40,24 +40,22 @@ urlencode()
 do_mount()
 {
     if [[ -n ${MOUNT_POINT} ]]; then
-        echo "Warning: ${DEVICE} is already mounted at ${MOUNT_POINT}"
+        echo "Warning: ${PART} is already mounted at ${MOUNT_POINT}"
         exit 1
     fi
 
     # Get info for this drive: $ID_FS_LABEL, $ID_FS_UUID, and $ID_FS_TYPE
-    eval $(/sbin/blkid -o udev ${DEVICE})
+    eval $(/sbin/blkid -o udev ${PART_PATH})
 
     # Figure out a mount point to use
     LABEL=${ID_FS_LABEL}
     if [[ -z "${LABEL}" ]]; then
-        LABEL=${DEVBASE}
+        LABEL=${PART}
     elif /bin/grep -q " /run/media/${LABEL} " /etc/mtab; then
         # Already in use, make a unique one
-        LABEL+="-${DEVBASE}"
+        LABEL+="-${PART}"
     fi
     MOUNT_POINT="/run/media/${LABEL}"
-
-    echo "Mount point: ${MOUNT_POINT}"
 
     /bin/mkdir -p ${MOUNT_POINT}
 
@@ -71,19 +69,19 @@ do_mount()
 
     # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
     if [[ ${ID_FS_TYPE} != "ext4" ]]; then
-      echo "$DEVICE does not have an ext4 filesystem. Aborting..."
+      echo "$PART_PATH does not have an ext4 filesystem. Aborting..."
       exit 1
     fi
 
-    if ! /bin/mount -o ${OPTS} ${DEVICE} ${MOUNT_POINT}; then
-        echo "Error mounting ${DEVICE} (status = $?)"
+    if ! /bin/mount -o ${OPTS} ${PART_PATH} ${MOUNT_POINT}; then
+        echo "Error mounting ${PART} (status = $?)"
         /bin/rmdir ${MOUNT_POINT}
         exit 1
     fi
 
     chown 1000:1000 ${MOUNT_POINT}
 
-    echo "**** Mounted ${DEVICE} at ${MOUNT_POINT} ****"
+    echo "**** Mounted ${PART} at ${MOUNT_POINT} ****"
 
     url=$(urlencode ${MOUNT_POINT})
 
@@ -107,10 +105,10 @@ do_unmount()
     fi
 
     if [[ -z ${MOUNT_POINT} ]]; then
-        echo "Warning: ${DEVICE} is not mounted"
+        echo "Warning: ${PART} is not mounted"
     else
-        /bin/umount -l ${DEVICE}
-        echo "**** Unmounted ${DEVICE}"
+        /bin/umount -l ${PART_PATH}
+        echo "**** Unmounted ${PART}"
     fi
 
     # Delete all empty dirs in /media that aren't being used as mount

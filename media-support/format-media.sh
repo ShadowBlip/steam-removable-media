@@ -3,7 +3,13 @@
 
 set -e
 MEDIA=$1
-PART=${MEDIA}1
+
+# mmc devices use p as prefix for the partition number.
+if [[ $MEDIA =~ mmcblk[0-9] ]]; then
+	PART=${MEDIA}p1
+else
+	PART=${MEDIA}1
+fi
 
 # Verify root user.
 if [ "$EUID" -ne 0 ]
