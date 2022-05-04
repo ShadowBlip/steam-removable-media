@@ -42,6 +42,23 @@ if [[ -e /dev/$MEDIA ]]; then
   # Stop the service to remove the drive from steam. 
   systemctl stop media-mount@${PART}.service
   
+  # Unmount any existing partitions.
+  MOUNT=$(df -h | grep $MEDIA | awk '{ print $6 }')
+  echo "MOUNT: $MOUNT"
+  if [ ! -z "$MOUNT" ]; then
+    for MNT_PART in $MOUNT
+    do
+    if [[ $MNT_PART = @("/"|"/boot/efi"|"/boot"|"/boot/grub") ]]; then
+        echo "$MEDIA is primary OS device. Aborting..."
+	exit 1
+      fi
+      if ! umount  $MNT_PART > /dev/null; then
+        echo "Failed to unmount $MNT_PART."
+        exit 1
+      fi
+    done
+  fi
+
   # Create the new filesystem.
   parted --script /dev/${MEDIA} mklabel gpt mkpart primary 0% 100%
   sync
