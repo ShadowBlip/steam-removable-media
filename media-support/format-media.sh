@@ -44,7 +44,6 @@ if [[ -e /dev/$MEDIA ]]; then
   
   # Unmount any existing partitions.
   MOUNT=$(df -h | grep $MEDIA | awk '{ print $6 }')
-  echo "MOUNT: $MOUNT"
   if [ ! -z "$MOUNT" ]; then
     for MNT_PART in $MOUNT
     do
