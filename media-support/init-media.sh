@@ -38,7 +38,7 @@ fi
 
 # Mount service checks for UUID before adding the drive to steam.
 echo "Initializing steam library."
-DEV_UUID=$(blkid -o value -s UUID $PART_PARTH)
+DEV_UUID=$(blkid -o value -s UUID $PART_PATH)
 grep -qxF ${DEV_UUID} ${FILE} || echo ${DEV_UUID} >> ${FILE}
 
 exit 0

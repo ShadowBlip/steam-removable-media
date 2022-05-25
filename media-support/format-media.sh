@@ -40,7 +40,7 @@ if [[ -e /dev/$MEDIA ]]; then
     printf "\n"
   esac
   # Stop the service to remove the drive from steam. 
-  systemctl stop media-mount@${PART}.service
+  systemctl stop media-mount@${PART}.service || echo "Continuing..."
   
   # Unmount any existing partitions.
   MOUNT=$(df -h | grep $MEDIA | awk '{ print $6 }')
