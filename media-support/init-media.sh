@@ -41,4 +41,5 @@ echo "Initializing steam library."
 DEV_UUID=$(blkid -o value -s UUID $PART_PATH)
 grep -qxF ${DEV_UUID} ${FILE} || echo ${DEV_UUID} >> ${FILE}
 
+systemctl start media-mount@${PART}.service
 exit 0
