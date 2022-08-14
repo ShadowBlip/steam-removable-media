@@ -5,8 +5,8 @@ set -e
 
 # Verify root user.
 if [ "$EUID" -ne 0 ]
-  then echo "Please run as root"
-  exit
+  then echo "Must be run as root. Exiting..."
+  exit 0
 fi
 
 # Verify correct usage.
@@ -36,7 +36,7 @@ if [[ -e /dev/$MEDIA ]]; then
   read -n 1 -p "This will completely erase the entire disk $MEDIA. Are you sure? [Y/n]" response
   case "$response" in [Nn]) 
     printf "\nNo received. Aborting..."
-    exit 1
+    exit 0
     ;;&
     *)
     printf "\n"
@@ -79,4 +79,4 @@ else
   exit 1
 fi
 
-exit 1
+exit 0
