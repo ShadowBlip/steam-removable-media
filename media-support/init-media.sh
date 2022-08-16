@@ -1,45 +1,61 @@
 #!/bin/bash
 
-usage()
+# Originally from https://serverfault.com/a/767079
+# Modified from SteamOS 3 sdcard-mount.sh
+# This script is called from our systemd unit file to mount or unmount
+# a system drive.
+
+urlencode()
 {
-  echo "Usage: $0 partition_name (e.g. sdb1)"
-  exit 1
+  [ -z "$1" ] || echo -n "$@" | hexdump -v -e '/1 "%02x"' | sed 's/\(..\)/%\1/g'
 }
 
-if [[ $# -ne 1 ]]; then
-  usage
-fi
-
-FILE="/etc/removable-libraries"
 PART=$1
-PART_PATH="/dev/$PART"
+PART_PATH="/dev/${PART}"
+PART_UUID=$(blkid -o value -s UUID ${PART_PATH})
 
-# Check if device exists.
-if [[ ! -e $PART_PATH ]]; then
-  echo "$PART not found. Aborting..."
-  exit 1
-fi
-
-# Get info for this drive: $ID_FS_TYPE
+# Get info for this drive: $ID_FS_LABEL, $ID_FS_UUID, and $ID_FS_TYPE
 eval $(/sbin/blkid -o udev ${PART_PATH})
-echo ${ID_FS_TYPE}
 
-# Steam only supports ext4 right now.
+# Figure out a mount point to use
+LABEL=${ID_FS_LABEL}
+if [[ -z "${LABEL}" ]]; then
+    LABEL=${PART}
+elif /bin/grep -q " /run/media/${LABEL} " /etc/mtab; then
+    # Already in use, make a unique one
+    LABEL+="-${PART}"
+fi
+
+MOUNT_POINT="/run/media/${LABEL}"
+/bin/mkdir -p ${MOUNT_POINT}
+
+# Global mount options
+OPTS="rw,noatime"
+
+# We need symlinks for Steam for now, so only automount ext4 as that's all
+# Steam will format right now
 if [[ ${ID_FS_TYPE} != "ext4" ]]; then
-  echo "$PART does not have an ext4 filesystem. It uses ${ID_FS_TYPE} and is not supported. Aborting..."
-  exit 1
+  echo "$PART_PATH does not have an ext4 filesystem. Aborting..."
+  exit 0
 fi
 
-# Intantiate file for tracking, if needed.
-if [[ ! -f "${FILE}" ]]; then
-  echo "Creating $FILE"
-  touch ${FILE}
+# Abort and throw failure if any issue with mounting occurs
+if ! /bin/mount -o ${OPTS} ${PART_PATH} ${MOUNT_POINT}; then
+    echo "Error mounting ${PART} (status = $?)"
+    /bin/rmdir ${MOUNT_POINT}
+    exit 1
 fi
 
-# Mount service checks for UUID before adding the drive to steam.
-echo "Initializing steam library."
-DEV_UUID=$(blkid -o value -s UUID $PART_PATH)
-grep -qxF ${DEV_UUID} ${FILE} || echo ${DEV_UUID} >> ${FILE}
+# chown to primary system user/group
+chown 1000:1000 ${MOUNT_POINT}
 
-systemctl start media-mount@${PART}.service
-exit 0
+echo "** Mounted ${PART} at ${MOUNT_POINT} **"
+
+url=$(urlencode ${MOUNT_POINT})
+
+# If Steam is running, attempt to add it as a library.
+if pgrep -x "steam" > /dev/null; then
+    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://addlibraryfolder/${url@Q}"
+fi
+
+echo "${PART_PATH} added as a steam library at ${MOUNT_POINT}"
