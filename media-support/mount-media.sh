@@ -8,7 +8,6 @@
 ACTION=$1
 PART=$2
 PART_PATH="/dev/${PART}"
-LIBRARY="/etc/removable-libraries"
 
 # Identify any current mounts and known drives.
 MOUNT_POINT=$(/bin/mount | /bin/grep ${PART_PATH} | /usr/bin/awk '{ print $3 }')
@@ -91,8 +90,8 @@ do_mount()
 
   echo "** Mounted ${PART} at ${MOUNT_POINT} **"
 
-  if [[ -e $(grep -L "$PART_UUID" $LIBRARY) ]]; then
-      echo "Device $PART has not been added as a steam library."
+  if [[ ! -f "${MOUNT_POINT}/SteamLibrary/libraryfolder.vdf" ]]; then
+      echo "Device $PART is not a steam library. Exiting..."
       exit 0
   fi
 
@@ -102,6 +101,7 @@ do_mount()
   if pgrep -x "steam" > /dev/null; then
       systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://addlibraryfolder/${url@Q}"
   fi
+  echo "${PART_PATH} added as a steam library at ${MOUNT_POINT}"
 }
 
 do_unmount()
