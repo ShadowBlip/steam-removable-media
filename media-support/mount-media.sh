@@ -90,7 +90,7 @@ do_mount()
 
   echo "** Mounted ${PART} at ${MOUNT_POINT} **"
 
-  if [[ ! -f "${MOUNT_POINT}/SteamLibrary/libraryfolder.vdf"  ]] && [[ ! -f "${MOUNT_POINT}/libraryfolder.vdf"  !]]; then
+  if [[ ! -f "${MOUNT_POINT}/SteamLibrary/libraryfolder.vdf" ]] && [[ ! -f "${MOUNT_POINT}/libraryfolder.vdf" ]]; then
       echo "Device $PART is not a steam library. Exiting..."
       exit 0
   fi
