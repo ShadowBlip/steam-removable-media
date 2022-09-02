@@ -20,10 +20,10 @@ eval $(/sbin/blkid -o udev ${PART_PATH})
 # Figure out a mount point to use
 LABEL=${ID_FS_LABEL}
 if [[ -z "${LABEL}" ]]; then
-    LABEL=${PART}
+  LABEL=${PART}
 elif /bin/grep -q " /run/media/${LABEL} " /etc/mtab; then
-    # Already in use, make a unique one
-    LABEL+="-${PART}"
+  # Already in use, make a unique one
+  LABEL+="-${PART}"
 fi
 
 MOUNT_POINT="/run/media/${LABEL}"
@@ -41,9 +41,9 @@ fi
 
 # Abort and throw failure if any issue with mounting occurs
 if ! /bin/mount -o ${OPTS} ${PART_PATH} ${MOUNT_POINT}; then
-    echo "Error mounting ${PART} (status = $?)"
-    /bin/rmdir ${MOUNT_POINT}
-    exit 1
+  echo "Error mounting ${PART} (status = $?)"
+  /bin/rmdir ${MOUNT_POINT}
+  exit 1
 fi
 
 # chown to primary system user/group
@@ -55,7 +55,31 @@ url=$(urlencode ${MOUNT_POINT})
 
 # If Steam is running, attempt to add it as a library.
 if pgrep -x "steam" > /dev/null; then
-    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://addlibraryfolder/${url@Q}"
+  systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://addlibraryfolder/${url@Q}"
 fi
+
+# Build the file structure manually, if necessary, to support desktop mode.
+LIBRARY_FILE="${MOUNT_POINT}/libraryfolder.vdf"
+STEAMAPPS="${MOUNT_POINT}/steamapps"
+DESKTOP_LIBRARY="${MOUNT_POINT}/SteamLibrary"
+
+if [ ! -f ${LIBRARY_FILE} ]; then
+  echo '"libraryfolder"
+{
+	"contentid"		""
+	"label"		""
+}' > ${LIBRARY_FILE}
+fi
+
+if [ ! -d ${STEAMAPPS} ]; then
+  mkdir ${STEAMAPPS}
+fi
+
+if [ ! -d ${DESKTOP_LIBRARY} ]; then
+ ln -s ${MOUNT_POINT} ${DESKTOP_LIBRARY}
+fi
+
+chown 1000:1000 ${LIBRARY_FILE} ${STEAMAPPS} ${DESKTOP_LIBRARY}
+chmod 755 ${LIBRARY_FILE}
 
 echo "${PART_PATH} added as a steam library at ${MOUNT_POINT}"
