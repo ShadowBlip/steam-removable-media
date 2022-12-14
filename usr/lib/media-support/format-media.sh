@@ -3,6 +3,9 @@
 
 set -e
 
+
+MOUNT_LOCK="/var/run/media-mount.lock"
+
 # Verify root user.
 if [ "$EUID" -ne 0 ]
   then echo "Must be run as root. Exiting..."
@@ -28,6 +31,12 @@ if [[ $MEDIA =~ mmcblk[0-9] || $MEDIA =~ nvme[0-9]n[0-9] ]]; then
 else
 	PART=${MEDIA}1
 fi
+
+
+# lock file prevents the mount service from re-mounting as it gets triggered by udev rules
+on_exit() { rm -f -- "$MOUNT_LOCK"; }
+trap on_exit EXIT
+echo $$ > "$MOUNT_LOCK"
 
 # Verify device exists and start format..
 if [[ -e /dev/$MEDIA ]]; then
@@ -70,6 +79,7 @@ if [[ -e /dev/$MEDIA ]]; then
   mkfs.ext4 -m 0 -O casefold -F /dev/${PART}
   sync
   udevadm settle
+  rm "$MOUNT_LOCK"
 
   # Initialize a steam library.
   /usr/lib/media-support/init-media.sh ${PART}
@@ -77,6 +87,7 @@ if [[ -e /dev/$MEDIA ]]; then
   exit 0
 else 
   echo "$MEDIA not found. Aborting..."
+  rm "$MOUNT_LOCK"
   exit 1
 fi
 
