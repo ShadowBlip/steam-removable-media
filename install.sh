@@ -3,6 +3,7 @@ set -e
 
 echo "Installing Media Support Package"
 cp -Rv usr/bin/shadowblip /usr/bin/
+cp -Rv usr/bin/steamos-polkit-helpers /usr/bin/
 cp -Rv usr/lib/hwsupport /usr/lib/
 cp -Rv usr/lib/media-support /usr/lib/
 cp -v usr/lib/systemd/system/media-mount@.service /usr/lib/systemd/system
