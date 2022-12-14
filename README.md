@@ -24,10 +24,11 @@ To support the 'Format SD Card' button in Steam GamepadUI you will need to
 ensure your user has NOPASSWD access to the scripts.
 
 `touch /etc/suoders.d/media-support`
-use your preffered text editor to add the following.
+use your preffered text editor to add the following. Replace steamuser with
+your username
 ```
-gamer ALL=(ALL) NOPASSWD: /usr/lib/hwsupport/format-sdcard.sh*
-gamer ALL=(ALL) NOPASSWD: /usr/lib/media-support/format-media.sh*
+steamuser ALL=(ALL) NOPASSWD: /usr/lib/hwsupport/format-sdcard.sh*
+steamuser ALL=(ALL) NOPASSWD: /usr/lib/media-support/format-media.sh*
 ```
 
 
