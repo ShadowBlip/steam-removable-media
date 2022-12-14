@@ -1,7 +1,6 @@
 # steam-removable-media
 Automounts and imports removable media as a Steam library
 
-
 # Installing
 
 ## From the AUR
@@ -19,3 +18,17 @@ Automounts and imports removable media as a Steam library
 
 ## From source
 - Run ```./remove.sh``` as root.
+
+# Configuring
+To support the 'Format SD Card' button in Steam GamepadUI you will need to
+ensure your user has NOPASSWD access to the scripts.
+
+`touch /etc/suoders.d/media-support`
+use your preffered text editor to add the following. Replace `steamuser` with
+your username
+```
+steamuser ALL=(ALL) NOPASSWD: /usr/lib/hwsupport/format-sdcard.sh*
+steamuser ALL=(ALL) NOPASSWD: /usr/lib/media-support/format-media.sh*
+```
+
+
