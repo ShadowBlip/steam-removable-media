@@ -7,7 +7,7 @@
   <vendor>ShadowBlip Steam Removable Media Support</vendor>
   <vendor_url>http://www.github.com/shadowblip</vendor_url>
 
-  <action id="org.shadowblip.format-sdcard">
+  <action id="org.shadowblip.pkexec.run-format-sdcard">
     <description>Run the Steam GamepadUI Format SD Card function</description>
     <icon_name>package-x-generic</icon_name> 
     <defaults>
@@ -18,8 +18,8 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/shadowblip/format-sdcard</annotate>
   </action>
 
-  <action id="org.shadowblip.format-media">
-    <description>Run the function to format removable media and add as a Steam library</description>
+  <action id="org.shadowblip.pkexec.run-format-media">
+    <description>Format removable media and add it as a Steam library</description>
     <icon_name>package-x-generic</icon_name> 
     <defaults>
       <allow_any>yes</allow_any>
