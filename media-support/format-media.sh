@@ -69,6 +69,7 @@ if [[ -e /dev/$MEDIA ]]; then
   sync
   mkfs.ext4 -m 0 -O casefold -F /dev/${PART}
   sync
+  udevadm settle
 
   # Initialize a steam library.
   /usr/lib/media-support/init-media.sh ${PART}
