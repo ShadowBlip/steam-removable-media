@@ -5,8 +5,6 @@
 # This script is called from our systemd unit file to mount or unmount
 # a system drive.
 
-#!/bin/bash
-
 set -euo pipefail
 
 usage()

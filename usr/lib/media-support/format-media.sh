@@ -1,7 +1,5 @@
 #!/bin/bash
 # Modified from SteamOS 3 format-device.sh
-#
-# #!/bin/bash
 
 set -e
 
