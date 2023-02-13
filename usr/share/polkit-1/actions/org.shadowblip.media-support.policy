@@ -29,5 +29,27 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/steamos-polkit-helpers/steamos-format-sdcard</annotate>
   </action>
 
+  <action id="org.shadowblip.pkexec.run-trim-devices">
+    <description>Run the steam trim storage devices helper</description>
+    <icon_name>package-x-generic</icon_name>
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/steamos-polkit-helpers/steamos-trim-devices</annotate>
+  </action>
+
+  <action id="org.shadowblip.pkexec.run-retrigger-automounts">
+    <description>Retrigger media device mounts by issuing a reload to all running media-mount@ services</description>
+    <icon_name>package-x-generic</icon_name> 
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/steamos-polkit-helpers/steamos-retrigger-automounts</annotate>
+  </action>
+
 </policyconfig>
 

@@ -1,5 +1,12 @@
 # From https://serverfault.com/a/767079
-# Modified from SteamOS 3 sdcard-mount@.service
+# Modified from SteamOS 3 steamos-automount@.service
+#
+# This gets triggered from a udev rule. Running the script directly from udev 
+# won't work because it has no caps, and the service needs to wait for udev 
+# rules to complete to talk to udisks.
+#
+# This also allows the 'remove' action to only be invoked if the 'add'
+# action succeeded and the service is running.
 
 [Unit]
 Description=Mount removable media on %i
@@ -9,3 +16,4 @@ Type=oneshot
 RemainAfterExit=true
 ExecStart=/usr/lib/media-support/mount-media.sh add %i
 ExecStop=/usr/lib/media-support/mount-media.sh remove %i
+ExecReload=/usr/lib/media-support/mount-media.sh retrigger %i
