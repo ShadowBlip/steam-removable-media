@@ -6,7 +6,7 @@ polkit.addRule(function(action, subject) {
     var permission = {
         "org.freedesktop.udisks2.eject-media": YES,
         "org.freedesktop.udisks2.eject-media-other-seat": YES,
-        "org.freedesktop.udisks2.filesystem-mount": YES
+        "org.freedesktop.udisks2.filesystem-mount": YES,
         "org.freedesktop.udisks2.filesystem-mount-other-seat": YES,
         "org.freedesktop.udisks2.filesystem-unmount-others": YES,
         "org.freedesktop.udisks2.power-off-drive": YES,
