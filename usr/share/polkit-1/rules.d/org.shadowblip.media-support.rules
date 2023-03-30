@@ -1,29 +1,20 @@
 // Refer to: http://storaged.org/doc/udisks2-api/latest/udisks-polkit-actions.html
-polkit.log("STARTING")
 polkit.addRule(function(action, subject) {
     var YES = polkit.Result.YES;
 
     // Used by Steam
     var permission = {
         "org.freedesktop.udisks2.eject-media": YES,
-        "org.freedesktop.udisks2.power-off-drive": YES,
-        "org.freedesktop.udisks2.filesystem-unmount-others": YES,
         "org.freedesktop.udisks2.eject-media-other-seat": YES,
+        "org.freedesktop.udisks2.filesystem-mount": YES
+        "org.freedesktop.udisks2.filesystem-mount-other-seat": YES,
+        "org.freedesktop.udisks2.filesystem-unmount-others": YES,
+        "org.freedesktop.udisks2.power-off-drive": YES,
         "org.freedesktop.udisks2.power-off-drive-other-seat": YES,
     };
 
     // Used by media-mount service
-    var if_drive_removable = {
-        "org.freedesktop.udisks2.filesystem-mount-other-seat": YES,
-        "org.freedesktop.udisks2.filesystem-mount": YES
-    }
-
-    // Used by media-mount service
     if (subject.isInGroup("wheel")) {
-        if (action.id in if_drive_removable && action.lookup("drive.removable") == "true") {
-            return if_drive_removable[action.id];
-        }
-
         return permission[action.id];
     }
 });
