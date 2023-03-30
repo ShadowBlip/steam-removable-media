@@ -101,7 +101,7 @@ do_mount()
   # safely.
   if ! udevadm settle; then
     echo "Failed to wait for \`udevadm settle\`"
-    exit 0
+    exit 1
   fi
 
   # Ask udisks to auto-mount.  Since this API doesn't let us pass a username to automount as, we need to drop to the
@@ -121,7 +121,7 @@ do_mount()
 
   if [[ $ret -ne 0 ]]; then
     echo "Error mounting ${DEVICE} (status = $ret)"
-    exit 0
+    exit 1
   fi
 
   # Expected reply is of the format
@@ -130,7 +130,7 @@ do_mount()
   if [[ -z $mount_point ]]; then
     echo "Error when mounting ${DEVICE}: udisks returned success but could not parse reply:"
     echo "---"$'\n'"$reply"$'\n'"---"
-    exit 0
+    exit 2
   fi
 
   echo "**** Mounted ${DEVICE} at ${mount_point} ****"
