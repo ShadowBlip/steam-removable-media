@@ -51,14 +51,13 @@ wait_steam()
 send_steam_url()
 {
   local command="$1"
-  local arg="$2"
   if pgrep -x "steam" > /dev/null; then
     local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
     url=$(urlencode "${mount_point}")
     # TODO use -ifrunning and check return value - if there was a steam process and it returns -1, the message wasn't sent
     # need to retry until either steam process is gone or -ifrunning returns 0, or timeout i guess
-    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${arg@Q}"
-    echo "Sent URL to steam: steam://${command}/${arg}"
+    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${url@Q}"
+    echo "Sent URL to steam: steam://${command}/${url}"
   else
     echo "Could not send steam URL $url -- steam not running"
   fi
@@ -106,10 +105,7 @@ do_mount()
 
   # Ask udisks to auto-mount.  Since this API doesn't let us pass a username to automount as, we need to drop to the
   # user.  Don't do this as a `--user` unit though as their session may not be running.
-  #
   # This requires the paired polkit file to allow the user the filesystem-mount-other-seat permission.
-  #   Working around that would require racily detecting the active VT and binding this invocation to a PAM session on
-  #   that seat/VT.  This is silly.
   ret=0
   reply=$(systemd-run --uid=1000 --pipe \
     busctl call --allow-interactive-authorization=false --expect-reply=true --json=short \
@@ -120,7 +116,8 @@ do_mount()
     options s "$OPTS") || ret=$?
 
   if [[ $ret -ne 0 ]]; then
-    echo "Error mounting ${DEVICE} (status = $ret)"
+    echo "Error mounting ${DEVICE} -- (status = $ret)"
+    echo "--- $[reply] ---"
     exit 1
   fi
 
@@ -129,30 +126,27 @@ do_mount()
   mount_point=$(jq -r '.data[0] | select(type == "string")' <<< "$reply" || true)
   if [[ -z $mount_point ]]; then
     echo "Error when mounting ${DEVICE}: udisks returned success but could not parse reply:"
-    echo "---"$'\n'"$reply"$'\n'"---"
+    echo "--- $[reply] ---"
     exit 2
   fi
 
-  echo "**** Mounted ${DEVICE} at ${mount_point} ****"
+  echo "Mounted ${DEVICE} at ${mount_point}"
 
   if [ -d "${mount_point}/lost+found" ]; then
     rm -rf "${mount_point}/lost+found"
   fi
 
-  # Build the file structure manually, if necessary, to support desktop mode.
+  # Build the file structure manually, if necessary.
   library_file="${mount_point}/libraryfolder.vdf"
   steamapps_dir="${mount_point}/steamapps"
-  desktop_steamapps_dir="${mount_point}/SteamLibrary"
 
   if [ ! -d ${steamapps_dir} ]; then
+    echo "steamapps dir not found. Creating..."
     mkdir ${steamapps_dir}
   fi
 
-  if [ ! -e ${desktop_steamapps_dir} ]; then
-    ln -s ${mount_point} ${desktop_steamapps_dir}
-  fi
-
   if [ ! -f ${library_file} ]; then
+    echo "libraryfolder.vdf not found. Creating..."
     echo '"libraryfolder"
   {
   	"contentid"		""
@@ -161,9 +155,9 @@ do_mount()
   fi
 
   # If Steam is running, notify it.
-  url=$(urlencode "${mount_point}")
-  send_steam_url "addlibraryfolder" "${url}"
+  send_steam_url "addlibraryfolder"
 
+  echo "Setting user permissions for ${mount_point}..."
   chown -R 1000:1000 ${mount_point}
   chmod 755 ${library_file}
 
@@ -175,8 +169,7 @@ do_unmount()
   # If Steam is running, notify it
   local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
   [[ -n $mount_point ]] || return 0
-  url=$(urlencode "${mount_point}")
-  send_steam_url "removelibraryfolder" "${url}"
+  send_steam_url "removelibraryfolder"
 }
 
 do_retrigger()
@@ -190,7 +183,7 @@ do_retrigger()
   # This is a truly gnarly way to ensure steam is ready for commands.
   # TODO literally anything else
   sleep 6
-  send_steam_url "addlibraryfolder" "${url}"
+  send_steam_url "addlibraryfolder"
 }
 
 case "${ACTION}" in
