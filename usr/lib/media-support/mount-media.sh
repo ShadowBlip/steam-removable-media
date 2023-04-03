@@ -34,7 +34,7 @@ if ! flock -n 9; then
   echo "$MOUNT_LOCK is active: ignoring action $ACTION"
   # Do not return a success exit code: it could end up putting the service in 'started' state without doing the mount
   # work (further start commands will be ignored after that)
-  exit 0
+  exit 1
 fi
 
 # Wait N seconds for steam
@@ -51,12 +51,13 @@ wait_steam()
 send_steam_url()
 {
   local command="$1"
-  local arg="$2"
   if pgrep -x "steam" > /dev/null; then
     local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
     url=$(urlencode "${mount_point}")
-    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${arg@Q}"
-    echo "Sent URL to steam: steam://${command}/${arg}"
+    # TODO use -ifrunning and check return value - if there was a steam process and it returns -1, the message wasn't sent
+    # need to retry until either steam process is gone or -ifrunning returns 0, or timeout i guess
+    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${url@Q}"
+    echo "Sent URL to steam: steam://${command}/${url}"
   else
     echo "Could not send steam URL $url -- steam not running"
   fi
@@ -158,9 +159,7 @@ do_mount()
   chmod 755 ${library_file}
 
   # If Steam is running, notify it.
-  echo "Notify steam of new library drive..."
-  url=$(urlencode "${mount_point}")
-  send_steam_url "addlibraryfolder" "${url}"
+  send_steam_url "addlibraryfolder"
   echo "${DEVICE} added as a steam library at ${mount_point}"
 }
 
@@ -169,8 +168,7 @@ do_unmount()
   # If Steam is running, notify it
   local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
   [[ -n $mount_point ]] || return 0
-  url=$(urlencode "${mount_point}")
-  send_steam_url "removelibraryfolder" "${url}"
+  send_steam_url "removelibraryfolder"
 }
 
 do_retrigger()
@@ -184,7 +182,7 @@ do_retrigger()
   # This is a truly gnarly way to ensure steam is ready for commands.
   # TODO literally anything else
   sleep 6
-  send_steam_url "addlibraryfolder" "${url}"
+  send_steam_url "addlibraryfolder"
 }
 
 case "${ACTION}" in
