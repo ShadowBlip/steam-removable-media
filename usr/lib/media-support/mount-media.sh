@@ -59,7 +59,7 @@ send_steam_url()
     systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${url@Q}"
     echo "Sent URL to steam: steam://${command}/${url}"
   else
-    echo "Could not send steam URL $url -- steam not running"
+    echo "Could not add library -- steam not running"
   fi
 }
 
