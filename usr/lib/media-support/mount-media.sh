@@ -23,7 +23,7 @@ DEVICE="/dev/${DEVBASE}"
 
 # Shared between this and the auto-mount script to ensure we're not double-triggering nor automounting while formatting
 # or vice-versa.
-MOUNT_LOCK="/var/run/jupiter-automount-${DEVBASE//\/_}.lock"
+MOUNT_LOCK="/var/run/media-automount-${DEVBASE//\/_}.lock"
 
 # Identify any current mounts and known drives.
 DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
@@ -154,13 +154,12 @@ do_mount()
   }' > ${library_file}
   fi
 
-  # If Steam is running, notify it.
-  send_steam_url "addlibraryfolder"
-
   echo "Setting user permissions for ${mount_point}..."
   chown -R 1000:1000 ${mount_point}
   chmod 755 ${library_file}
 
+  # If Steam is running, notify it.
+  send_steam_url "addlibraryfolder"
   echo "${DEVICE} added as a steam library at ${mount_point}"
 }
 

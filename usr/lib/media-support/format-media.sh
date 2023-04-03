@@ -62,7 +62,7 @@ systemctl stop media-mount@"$STORAGE_PARTBASE".service
 #
 # NOTE: Uses a shared lock filename between this and the auto-mount script to ensure we're not double-triggering nor
 # automounting while formatting or vice-versa.
-MOUNT_LOCK="/var/run/meida-automount-${STORAGE_PARTBASE//\/_}.lock"
+MOUNT_LOCK="/var/run/media-automount-${STORAGE_PARTBASE//\/_}.lock"
 MOUNT_LOCK_FD=9
 exec 9<>"$MOUNT_LOCK"
 
