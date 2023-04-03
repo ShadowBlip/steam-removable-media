@@ -52,14 +52,10 @@ send_steam_url()
 {
   local command="$1"
   if pgrep -x "steam" > /dev/null; then
-    local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
+    local mount_point=$2
     url=$(urlencode "${mount_point}")
-    # TODO use -ifrunning and check return value - if there was a steam process and it returns -1, the message wasn't sent
-    # need to retry until either steam process is gone or -ifrunning returns 0, or timeout i guess
+    echo "Sending URL to steam: steam://${command}/${url}"
     systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${url@Q}"
-    echo "Sent URL to steam: steam://${command}/${url}"
-  else
-    echo "Could not add library -- steam not running"
   fi
 }
 
@@ -159,7 +155,7 @@ do_mount()
   chmod 755 ${library_file}
 
   # If Steam is running, notify it.
-  send_steam_url "addlibraryfolder"
+  send_steam_url "addlibraryfolder" $mount_point
   echo "${DEVICE} added as a steam library at ${mount_point}"
 }
 
@@ -168,13 +164,12 @@ do_unmount()
   # If Steam is running, notify it
   local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
   [[ -n $mount_point ]] || return 0
-  send_steam_url "removelibraryfolder"
+  send_steam_url "removelibraryfolder" $mount_point
 }
 
 do_retrigger()
 {
   local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
-  url=$(urlencode "${mount_point}")
   [[ -n $mount_point ]] || return 0
 
   # In retrigger mode, we want to wait a bit for steam as the common pattern is starting in parallel with a retrigger
@@ -182,7 +177,7 @@ do_retrigger()
   # This is a truly gnarly way to ensure steam is ready for commands.
   # TODO literally anything else
   sleep 6
-  send_steam_url "addlibraryfolder"
+  send_steam_url "addlibraryfolder" $mount_point
 }
 
 case "${ACTION}" in
