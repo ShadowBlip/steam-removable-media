@@ -15,5 +15,6 @@ rm -v /usr/share/polkit-1/rules.d/org.shadowblip.media-support.rules
 
 udevadm control -R
 systemctl daemon-reload
+systemctl restart polkit
 
 exit 0
