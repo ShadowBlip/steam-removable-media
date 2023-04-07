@@ -133,14 +133,13 @@ do_mount()
   fi
 
   # Build the file structure manually, if necessary.
-  library_file="${mount_point}/libraryfolder.vdf"
   steamapps_dir="${mount_point}/steamapps"
-
   if [ ! -d ${steamapps_dir} ]; then
     echo "steamapps dir not found. Creating..."
     mkdir ${steamapps_dir}
   fi
 
+  library_file="${mount_point}/libraryfolder.vdf"
   if [ ! -f ${library_file} ]; then
     echo "libraryfolder.vdf not found. Creating..."
     echo '"libraryfolder"
@@ -148,6 +147,27 @@ do_mount()
   	"contentid"		""
   	"label"		""
   }' > ${library_file}
+  fi
+
+  desktop_dir="${mount_point}/SteamLibrary"
+  if [ -L ${desktop_dir} ]; then
+    echo "Removing old symlink to ${desktop_dir}"
+    rm ${desktop_dir}
+  fi
+
+  if [ ! -d ${desktop_dir} ]; then
+    echo "Desktop Libray not found. Creating..."
+    mkdir ${desktop_dir}
+  fi
+
+  if [ ! -L "${desktop_dir}/steamapps" ]; then
+    echo "Adding symlink to steamapps dir"
+    ln -s ${steamapps_dir} "${desktop_dir}/steamapps"
+  fi
+
+  if [ ! -L "${desktop_dir}/libraryfolder.vdf" ]; then
+    echo "Adding symlink to libraryfolder.vdf"
+    ln -s ${library_file} "${desktop_dir}/libraryfolder.vdf"
   fi
 
   echo "Setting user permissions for ${mount_point}..."
