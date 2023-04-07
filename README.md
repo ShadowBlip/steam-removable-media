@@ -1,20 +1,35 @@
 # steam-removable-media
-Automounts and imports removable media as a Steam library
+Automounts and imports removable media as a Steam library.
+Devices must be formated as ext4 or they will not work.
+Supported device types:
+```
+mmcblkX
+nvmeX
+sdX
+```
+
+# Usage
+See the [wiki](https://github.com/ShadowBlip/steam-removable-media/wiki) for detailed usage instructions.
 
 # Installing
 
 ## From the AUR
-- Run ```pikaur -S steam-removable-media-git``` as root.
+`yay -Sy steam-removable-media-git`
 
 ## From source
-- Install parted
-- Run ```./install.sh``` as root.
-
+```
+yay -Sy --needed parted
+git clone https://github.com/ShadowBlip/steam-removable-media.git && cd steam-removable-media
+sudo ./install.sh.
+```
 
 # Removing
 
 ## From the AUR
-- Run ```pikaur -R steam-removable-media-git``` as root.
+'yay -R steam-removable-media-git`
 
 ## From source
-- Run ```./remove.sh``` as root.
+```
+cd steam-removable-media
+sudo ./remove.sh
+```
