@@ -1,8 +1,6 @@
 // Refer to: http://storaged.org/doc/udisks2-api/latest/udisks-polkit-actions.html
 polkit.addRule(function(action, subject) {
     var YES = polkit.Result.YES;
-
-    // Used by Steam
     var permission = {
         "org.freedesktop.udisks2.eject-media": YES,
         "org.freedesktop.udisks2.eject-media-other-seat": YES,
@@ -10,10 +8,9 @@ polkit.addRule(function(action, subject) {
         "org.freedesktop.udisks2.filesystem-mount-other-seat": YES,
         "org.freedesktop.udisks2.filesystem-unmount-others": YES,
         "org.freedesktop.udisks2.power-off-drive": YES,
-        "org.freedesktop.udisks2.power-off-drive-other-seat": YES,
+        "org.freedesktop.udisks2.power-off-drive-other-seat": YES
     };
 
-    // Used by media-mount service
     if (subject.isInGroup("wheel")) {
         return permission[action.id];
     }
