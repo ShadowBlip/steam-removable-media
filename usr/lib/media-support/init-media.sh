@@ -21,6 +21,7 @@ usage()
 
 do_init()
 {
+  echo "Starting init-media on ${DEVICE}."
   # Avoid mount if part of fstab but not yet mounted.
   for FSTAB_UUID in $(cat /etc/fstab | awk '{ print $1 }' | cut -d "=" -f 2)
   do
@@ -33,8 +34,10 @@ do_init()
   # check if already mounted
   SKIP_MOUNT=0
   if [[ -n ${mount_point} ]]; then
-      echo "${DEVICE} is mounted at ${mount_point}"
-      SKIP_MOUNT=1
+    echo "${DEVICE} is mounted at ${mount_point}"
+    SKIP_MOUNT=1
+  else
+    echo "${DEVICE} is not currently mounted."
   fi
 
   # We need symlinks for Steam for now, so only automount ext4 as that's all
@@ -58,10 +61,10 @@ do_init()
     eval $(/sbin/blkid -o udev ${DEVICE})
     LABEL=${ID_FS_LABEL}
     if [[ -z "${LABEL}" ]]; then
-        LABEL=${DEVBASE}
+      LABEL=${DEVBASE}
     elif /bin/grep -q " /run/media/${LABEL} " /etc/mtab; then
-        # Already in use, make a unique one
-        LABEL+="-${DEVBASE}"
+      # Already in use, make a unique one
+      LABEL+="-${DEVBASE}"
     fi
     mount_point="/run/media/${LABEL}"
 
@@ -69,9 +72,9 @@ do_init()
 
     ## Mount the device, throw an error if any issue with mounting occurs.
     if ! /bin/mount -o ${OPTS} ${DEVICE} ${mount_point}; then
-        echo "Error mounting ${DEVICE} (status = $?)"
-        /bin/rmdir ${mount_point}
-        exit 1
+      echo "Error mounting ${DEVICE} (status = $?)"
+      /bin/rmdir ${mount_point}
+      exit 1
     fi
 
     echo "Mounted ${DEVICE} at ${mount_point}"
