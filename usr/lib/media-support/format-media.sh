@@ -51,7 +51,7 @@ fi
 
 # Prompt user is device is internal
 if [[ $(lsblk -d -n -r -o hotplug "$STORAGE_DEVICE") != "1" ]]; then
-    echo "WARNING! $STORAGE_DEVICE is not a hotplug device and may be a system drive.\n"
+    echo "WARNING! $STORAGE_DEVICE is not a hotplug device and may be a system drive."
 fi
 
 STORAGE_PARTBASE="${STORAGE_PARTITION#/dev/}"

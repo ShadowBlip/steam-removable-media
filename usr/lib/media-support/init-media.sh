@@ -55,7 +55,7 @@ do_init()
   # Get info for this drive: $ID_FS_LABEL, $ID_FS_UUID, and $ID_FS_TYPE
   if [ $SKIP_MOUNT == 0 ]; then
     # Figure out a mount point to use
-  eval $(/sbin/blkid -o udev ${DEVICE})
+    eval $(/sbin/blkid -o udev ${DEVICE})
     LABEL=${ID_FS_LABEL}
     if [[ -z "${LABEL}" ]]; then
         LABEL=${DEVBASE}
