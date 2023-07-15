@@ -11,7 +11,7 @@ set -euo pipefail
 DEVBASE=$1
 DEVICE="/dev/${DEVBASE}"
 DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
-mount_point=$(/bin/mount | /bin/grep ${PART_PATH} | /usr/bin/awk '{ print $3 }')
+mount_point=$(/bin/mount | /bin/grep ${DEVICE} | /usr/bin/awk '{ print $3 }')
 
 usage()
 {
@@ -55,21 +55,21 @@ do_init()
   # Get info for this drive: $ID_FS_LABEL, $ID_FS_UUID, and $ID_FS_TYPE
   if [ $SKIP_MOUNT == 0 ]; then
     # Figure out a mount point to use
-  eval $(/sbin/blkid -o udev ${PART_PATH})
+  eval $(/sbin/blkid -o udev ${DEVICE})
     LABEL=${ID_FS_LABEL}
     if [[ -z "${LABEL}" ]]; then
-        LABEL=${PART}
+        LABEL=${DEVBASE}
     elif /bin/grep -q " /run/media/${LABEL} " /etc/mtab; then
         # Already in use, make a unique one
-        LABEL+="-${PART}"
+        LABEL+="-${DEVBASE}"
     fi
     mount_point="/run/media/${LABEL}"
 
     /bin/mkdir -p ${mount_point}
 
     ## Mount the device, throw an error if any issue with mounting occurs.
-    if [ ! /bin/mount -o ${OPTS} ${PART_PATH} ${mount_point} ]; then
-        echo "Error mounting ${PART} (status = $?)"
+    if [ ! /bin/mount -o ${OPTS} ${DEVICE} ${mount_point} ]; then
+        echo "Error mounting ${DEVICE} (status = $?)"
         /bin/rmdir ${mount_point}
         exit 1
     fi
