@@ -143,11 +143,12 @@ sync
 mkfs.ext4 -m 0 -O casefold -E "$EXTENDED_OPTIONS" -F "$STORAGE_PARTITION"
 sync
 udevadm settle
-echo "Format complete. Initializing steam library"
+echo "Format complete."
+echo "Initializing steam library"
 
 # trigger init-media
 /usr/lib/media-support/init-media.sh $STORAGE_PARTITION
-echo "Steam library initialized. Mounting device."
+echo "Mounting device."
 
 # trigger the mount service
 flock -u "$MOUNT_LOCK_FD"

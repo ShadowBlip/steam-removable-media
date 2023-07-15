@@ -5,13 +5,9 @@
 # This script is called from our systemd unit file to set up
 # the device as a steam library.
 
-set -euo pipefail
-
 # Identify drive, any current mounts, and if it is aknown drive.
-DEVBASE=$1
-DEVICE="/dev/${DEVBASE}"
-DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
-mount_point=$(/bin/mount | /bin/grep ${DEVICE} | /usr/bin/awk '{ print $3 }')
+DEVICE=$1
+DEVBASE=$(echo $1 | sed 's:/dev/::')
 
 usage()
 {
@@ -22,6 +18,7 @@ usage()
 do_init()
 {
   echo "Starting init-media on ${DEVICE}."
+  DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
   # Avoid mount if part of fstab but not yet mounted.
   for FSTAB_UUID in $(cat /etc/fstab | awk '{ print $1 }' | cut -d "=" -f 2)
   do
@@ -32,6 +29,7 @@ do_init()
   done
 
   # check if already mounted
+  mount_point=$(/bin/mount | /bin/grep ${DEVICE} | /usr/bin/awk '{ print $3 }')
   SKIP_MOUNT=0
   if [[ -n ${mount_point} ]]; then
     echo "${DEVICE} is mounted at ${mount_point}"
@@ -69,7 +67,8 @@ do_init()
     mount_point="/run/media/${LABEL}"
 
     /bin/mkdir -p ${mount_point}
-
+    # Global mount options
+    OPTS="rw,noatime"
     ## Mount the device, throw an error if any issue with mounting occurs.
     if ! /bin/mount -o ${OPTS} ${DEVICE} ${mount_point}; then
       echo "Error mounting ${DEVICE} (status = $?)"
@@ -123,8 +122,9 @@ do_init()
   fi
 
   chown -R 1000:1000 ${steamapps_dir}
-  chmod 755 ${library_file}
+  chown -R 1000:1000 ${library_file}
   chown -R 1000:1000 ${desktop_dir}
+  chmod 755 ${library_file}
   chmod 755 "${desktop_dir}/libraryfolder.vdf"
 
   # Clean up if we mounted ourself
@@ -138,7 +138,8 @@ do_init()
 
 if [[ ! -n $DEVICE ]]; then 
   usage
+else
+  do_init
 fi
 
-do_init
 
