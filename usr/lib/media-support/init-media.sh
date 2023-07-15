@@ -7,22 +7,17 @@
 
 set -euo pipefail
 
+# Identify drive, any current mounts, and if it is aknown drive.
 DEVBASE=$1
 DEVICE="/dev/${DEVBASE}"
+DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
+mount_point=$(/bin/mount | /bin/grep ${PART_PATH} | /usr/bin/awk '{ print $3 }')
 
 usage()
 {
   echo "Usage: $0 partition_name (e.g. sdb1)"
   exit 1
 }
-
-if [ ! -f $DEVICE ]; then {
-  usage
-}
-
-# Identify any current mounts and known drives.
-DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
-mount_point=$(/bin/mount | /bin/grep ${PART_PATH} | /usr/bin/awk '{ print $3 }')
 
 do_init()
 {
@@ -137,4 +132,11 @@ do_init()
     echo "Unmounted ${DEVICE} from ${mount_point}."
   fi
   echo "Steam Library initialized."
+  exit 0
 }
+
+if [ ! -f $DEVICE ]; then {
+  usage
+}
+do_init
+
