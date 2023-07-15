@@ -47,7 +47,7 @@ do_init()
   # Prior to talking to mounting, we need all udev hooks to finish, so we know the system has
   # knowledge of the drive. Our rule starts us as a service with --no-block, so we can wait
   # for rules to settle here safely.
-  if [[ ! udevadm settle ]]; then
+  if  ! udevadm settle; then
     echo "Failed to wait for \`udevadm settle\`"
     exit 1
   fi
