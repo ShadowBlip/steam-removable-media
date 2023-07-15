@@ -136,5 +136,5 @@ do_init()
     /bin/umount ${mount_point}
     echo "Unmounted ${DEVICE} from ${mount_point}."
   fi
-  echo "Steam Library initialized.
+  echo "Steam Library initialized."
 }
