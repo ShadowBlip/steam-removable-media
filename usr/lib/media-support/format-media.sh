@@ -144,6 +144,9 @@ mkfs.ext4 -m 0 -O casefold -E "$EXTENDED_OPTIONS" -F "$STORAGE_PARTITION"
 sync
 udevadm settle
 
+# trigger init-media
+/usr/lib/media-support/init-media.sh $STORAGE_PARTITION
+
 # trigger the mount service
 flock -u "$MOUNT_LOCK_FD"
 if ! systemctl start media-mount@"$STORAGE_PARTBASE".service; then
