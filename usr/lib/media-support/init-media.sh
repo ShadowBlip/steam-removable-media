@@ -133,7 +133,7 @@ do_init()
   exit 0
 }
 
-if [[ ! -f $DEVICE ]]; then 
+if [[ ! -n $DEVICE ]]; then 
   usage
 fi
 
