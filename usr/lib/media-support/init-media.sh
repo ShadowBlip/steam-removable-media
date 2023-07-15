@@ -24,7 +24,7 @@ do_init()
   # Avoid mount if part of fstab but not yet mounted.
   for FSTAB_UUID in $(cat /etc/fstab | awk '{ print $1 }' | cut -d "=" -f 2)
   do
-   if [ "$DEVICE_UUID" = "$FSTAB_UUID" ]; then
+   if [[ "$DEVICE_UUID" = "$FSTAB_UUID" ]]; then
      echo "$MEDIA is mounted as part of /etc/fstab. Aborting..."
      exit 1
    fi
@@ -47,7 +47,7 @@ do_init()
   # Prior to talking to mounting, we need all udev hooks to finish, so we know the system has
   # knowledge of the drive. Our rule starts us as a service with --no-block, so we can wait
   # for rules to settle here safely.
-  if ! udevadm settle; then
+  if [[ ! udevadm settle ]]; then
     echo "Failed to wait for \`udevadm settle\`"
     exit 1
   fi
@@ -68,7 +68,7 @@ do_init()
     /bin/mkdir -p ${mount_point}
 
     ## Mount the device, throw an error if any issue with mounting occurs.
-    if [ ! /bin/mount -o ${OPTS} ${DEVICE} ${mount_point} ]; then
+    if [[ ! /bin/mount -o ${OPTS} ${DEVICE} ${mount_point} ]]; then
         echo "Error mounting ${DEVICE} (status = $?)"
         /bin/rmdir ${mount_point}
         exit 1
@@ -77,46 +77,44 @@ do_init()
     echo "Mounted ${DEVICE} at ${mount_point}"
   fi
 
-  if [ -d "${mount_point}/lost+found" ]; then
+  if [[ -d "${mount_point}/lost+found" ]]; then
     rm -rf "${mount_point}/lost+found"
   fi
 
   # Build the file structure manually, if necessary.
   steamapps_dir="${mount_point}/steamapps"
-  if [ ! -d ${steamapps_dir} ]; then
+  if [[ ! -d ${steamapps_dir} ]]; then
     echo "steamapps dir not found. Creating..."
     mkdir ${steamapps_dir}
-    chmod 755 ${steamapps_dir}
   fi
 
   library_file="${mount_point}/libraryfolder.vdf"
-  if [ ! -f ${library_file} ]; then
+  if [[ ! -f ${library_file} ]]; then
     echo "libraryfolder.vdf not found. Creating..."
     echo '"libraryfolder"
   {
   	"contentid"		""
   	"label"		""
   }' > ${library_file}
-    chown 1000:1000 ${library_file}
   fi
 
   desktop_dir="${mount_point}/SteamLibrary"
-  if [ -L ${desktop_dir} ]; then
+  if [[ -L ${desktop_dir} ]]; then
     echo "Removing old symlink to ${desktop_dir}"
     rm ${desktop_dir}
   fi
 
-  if [ ! -d ${desktop_dir} ]; then
+  if [[ ! -d ${desktop_dir} ]]; then
     echo "Desktop Libray not found. Creating..."
     mkdir ${desktop_dir}
   fi
 
-  if [ ! -L "${desktop_dir}/steamapps" ]; then
+  if [[ ! -L "${desktop_dir}/steamapps" ]]; then
     echo "Adding symlink to steamapps dir"
     ln -s ${steamapps_dir} "${desktop_dir}/steamapps"
   fi
 
-  if [ ! -L "${desktop_dir}/libraryfolder.vdf" ]; then
+  if [[ ! -L "${desktop_dir}/libraryfolder.vdf" ]]; then
     echo "Adding symlink to libraryfolder.vdf"
     ln -s ${library_file} "${desktop_dir}/libraryfolder.vdf"
   fi
@@ -127,7 +125,7 @@ do_init()
   chmod 755 "${desktop_dir}/libraryfolder.vdf"
 
   # Clean up if we mounted ourself
-  if [ $SKIP_MOUNT == 0 ]; then
+  if [[ $SKIP_MOUNT == 0 ]]; then
     /bin/umount ${mount_point}
     echo "Unmounted ${DEVICE} from ${mount_point}."
   fi
@@ -135,8 +133,9 @@ do_init()
   exit 0
 }
 
-if [ ! -f $DEVICE ]; then {
+if [[ ! -f $DEVICE ]]; then 
   usage
-}
+fi
+
 do_init
 
