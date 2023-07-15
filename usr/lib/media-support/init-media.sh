@@ -68,7 +68,7 @@ do_init()
     /bin/mkdir -p ${mount_point}
 
     ## Mount the device, throw an error if any issue with mounting occurs.
-    if [[ ! /bin/mount -o ${OPTS} ${DEVICE} ${mount_point} ]]; then
+    if ! /bin/mount -o ${OPTS} ${DEVICE} ${mount_point}; then
         echo "Error mounting ${DEVICE} (status = $?)"
         /bin/rmdir ${mount_point}
         exit 1
