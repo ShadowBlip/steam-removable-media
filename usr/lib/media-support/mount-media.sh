@@ -131,7 +131,7 @@ do_mount()
     echo "Unable to find a steamapps dir. Device is not a library. Run init-media to build steam library. Nothing else to do."
     return
   # If Steam is running, notify it.
-  else;
+  else
     send_steam_url "addlibraryfolder" $mount_point
     echo "${DEVICE} added as a steam library at ${mount_point}"
   fi
