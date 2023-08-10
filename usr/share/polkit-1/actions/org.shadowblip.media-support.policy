@@ -18,6 +18,17 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/shadowblip/format-media</annotate>
   </action>
 
+  <action id="org.shadowblip.pkexec.run-init-media">
+    <description>Add existing removable media partition as a Steam library</description>
+    <icon_name>package-x-generic</icon_name> 
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/shadowblip/init-media</annotate>
+  </action>
+
   <action id="org.shadowblip.pkexec.run-format-sdcard">
     <description>Run the Steam GamepadUI Format SD Card function</description>
     <icon_name>package-x-generic</icon_name> 
@@ -52,4 +63,3 @@
   </action>
 
 </policyconfig>
-

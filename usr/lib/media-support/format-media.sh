@@ -51,7 +51,7 @@ fi
 
 # Prompt user is device is internal
 if [[ $(lsblk -d -n -r -o hotplug "$STORAGE_DEVICE") != "1" ]]; then
-    echo "WARNING! $STORAGE_DEVICE is not a hotplug device and may be a system drive.\n"
+    echo "WARNING! $STORAGE_DEVICE is not a hotplug device and may be a system drive."
 fi
 
 STORAGE_PARTBASE="${STORAGE_PARTITION#/dev/}"
@@ -143,6 +143,12 @@ sync
 mkfs.ext4 -m 0 -O casefold -E "$EXTENDED_OPTIONS" -F "$STORAGE_PARTITION"
 sync
 udevadm settle
+echo "Format complete."
+echo "Initializing steam library"
+
+# trigger init-media
+/usr/lib/media-support/init-media.sh $STORAGE_PARTITION
+echo "Mounting device."
 
 # trigger the mount service
 flock -u "$MOUNT_LOCK_FD"
@@ -152,4 +158,5 @@ if ! systemctl start media-mount@"$STORAGE_PARTBASE".service; then
     exit 5
 fi
 
+echo "All tasks done."
 exit 0

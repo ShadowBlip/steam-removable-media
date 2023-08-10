@@ -84,13 +84,6 @@ do_mount()
   # Global mount options
   OPTS="rw,noatime"
 
-  # We need symlinks for Steam for now, so only automount ext4 as that's all
-  # Steam will format right now
-  if [[ ${ID_FS_TYPE} != "ext4" ]]; then
-    echo "Error mounting ${DEVICE}: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
-    exit 0
-  fi
-
   # Prior to talking to udisks, we need all udev hooks (we were started by one) to finish, so we know it has knowledge
   # of the drive.  Our own rule starts us as a service with --no-block, so we can wait for rules to settle here
   # safely.
@@ -132,51 +125,16 @@ do_mount()
     rm -rf "${mount_point}/lost+found"
   fi
 
-  # Build the file structure manually, if necessary.
+  # Check if this is a steam library.
   steamapps_dir="${mount_point}/steamapps"
   if [ ! -d ${steamapps_dir} ]; then
-    echo "steamapps dir not found. Creating..."
-    mkdir ${steamapps_dir}
-  fi
-
-  library_file="${mount_point}/libraryfolder.vdf"
-  if [ ! -f ${library_file} ]; then
-    echo "libraryfolder.vdf not found. Creating..."
-    echo '"libraryfolder"
-  {
-  	"contentid"		""
-  	"label"		""
-  }' > ${library_file}
-  fi
-
-  desktop_dir="${mount_point}/SteamLibrary"
-  if [ -L ${desktop_dir} ]; then
-    echo "Removing old symlink to ${desktop_dir}"
-    rm ${desktop_dir}
-  fi
-
-  if [ ! -d ${desktop_dir} ]; then
-    echo "Desktop Libray not found. Creating..."
-    mkdir ${desktop_dir}
-  fi
-
-  if [ ! -L "${desktop_dir}/steamapps" ]; then
-    echo "Adding symlink to steamapps dir"
-    ln -s ${steamapps_dir} "${desktop_dir}/steamapps"
-  fi
-
-  if [ ! -L "${desktop_dir}/libraryfolder.vdf" ]; then
-    echo "Adding symlink to libraryfolder.vdf"
-    ln -s ${library_file} "${desktop_dir}/libraryfolder.vdf"
-  fi
-
-  echo "Setting user permissions for ${mount_point}..."
-  chown -R 1000:1000 ${mount_point}
-  chmod 755 ${library_file}
-
+    echo "Unable to find a steamapps dir. Device is not a library. Run init-media to build steam library. Nothing else to do."
+    return
   # If Steam is running, notify it.
-  send_steam_url "addlibraryfolder" $mount_point
-  echo "${DEVICE} added as a steam library at ${mount_point}"
+  else
+    send_steam_url "addlibraryfolder" $mount_point
+    echo "${DEVICE} added as a steam library at ${mount_point}"
+  fi
 }
 
 do_unmount()
