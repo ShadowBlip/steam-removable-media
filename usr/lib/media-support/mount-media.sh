@@ -145,7 +145,7 @@ do_mount()
   # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
     if [[ ${ID_FS_TYPE} != "ext4" ]]; then
         echo "Cannot add ${DEVICE} as steam library: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
-        exit 2
+        exit 0
     fi
 
   # Check if this is a steam library.
