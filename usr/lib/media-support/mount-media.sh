@@ -88,12 +88,6 @@ do_mount()
   # Global mount options
   OPTS="rw,noatime"
 
-  # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
-    if [[ ${ID_FS_TYPE} != "ext4" ]]; then
-        echo "Error mounting ${DEVICE}: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
-        exit 2
-    fi
-
   # Prior to talking to udisks, we need all udev hooks (we were started by one) to finish, so we know it has knowledge
   # of the drive.  Our own rule starts us as a service with --no-block, so we can wait for rules to settle here
   # safely.
@@ -147,6 +141,12 @@ do_mount()
       ;;
     esac
   echo "Mounted ${DEVICE} at ${mount_point}"
+
+  # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
+    if [[ ${ID_FS_TYPE} != "ext4" ]]; then
+        echo "Cannot add ${DEVICE} as steam library: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
+        exit 2
+    fi
 
   # Check if this is a steam library.
   steamapps_dir="${mount_point}/steamapps"
