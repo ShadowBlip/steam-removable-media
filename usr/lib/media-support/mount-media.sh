@@ -25,9 +25,6 @@ DEVICE="/dev/${DEVBASE}"
 # or vice-versa.
 MOUNT_LOCK="/var/run/media-automount-${DEVBASE//\/_}.lock"
 
-# Identify any current mounts and known drives.
-DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
-
 # Obtain lock
 exec 9<>"$MOUNT_LOCK"
 if ! flock -n 9; then
@@ -51,11 +48,15 @@ wait_steam()
 send_steam_url()
 {
   local command="$1"
+  local arg="$2"
+  local encoded=$(urlencode "$arg")
   if pgrep -x "steam" > /dev/null; then
     local mount_point=$2
     url=$(urlencode "${mount_point}")
-    echo "Sending URL to steam: steam://${command}/${url}"
-    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${url@Q}"
+    systemd-run -M 1000@ --user --collect --wait sh -c "./.steam/root/ubuntu12_32/steam steam://${command}/${encoded@Q}"
+    echo "Sent URL to steam: steam://${command}/${arg} (steam://${command}/${encoded})"
+  else
+    echo "Could not send steam URL steam://${command}/${arg} (steam://${command}/${encoded}) -- steam not running"
   fi
 }
 
@@ -67,6 +68,9 @@ urlencode()
 
 do_mount()
 {
+  # Identify drive to check if it is managed by fstab or alreay mounted.
+  DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
+
   # Avoid mount if part of fstab but not yet mounted.
   for FSTAB_UUID in $(cat /etc/fstab | awk '{ print $1 }' | cut -d "=" -f 2)
   do
@@ -84,6 +88,12 @@ do_mount()
   # Global mount options
   OPTS="rw,noatime"
 
+  # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
+    if [[ ${ID_FS_TYPE} != "ext4" ]]; then
+        echo "Error mounting ${DEVICE}: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
+        exit 2
+    fi
+
   # Prior to talking to udisks, we need all udev hooks (we were started by one) to finish, so we know it has knowledge
   # of the drive.  Our own rule starts us as a service with --no-block, so we can wait for rules to settle here
   # safely.
@@ -96,15 +106,17 @@ do_mount()
   # user.  Don't do this as a `--user` unit though as their session may not be running.
   # This requires the paired polkit file to allow the user the filesystem-mount-other-seat permission.
   ret=0
-  reply=$(systemd-run --uid=1000 --pipe \
-    busctl call --allow-interactive-authorization=false --expect-reply=true --json=short \
-    org.freedesktop.UDisks2 \
-    /org/freedesktop/UDisks2/block_devices/"${DEVBASE}" \
-    org.freedesktop.UDisks2.Filesystem Mount 'a{sv}' 2 \
-    auth.no_user_interaction b true \
-    options s "$OPTS") || ret=$?
+  reply=$(systemd-run --uid=1000 --pipe                                                     \
+    busctl call --allow-interactive-authorization=false --expect-reply=true --json=short    \
+    org.freedesktop.UDisks2                                                                 \
+    /org/freedesktop/UDisks2/block_devices/"${DEVBASE}"                                     \
+    org.freedesktop.UDisks2.Filesystem                                                      \
+    Mount 'a{sv}' 2                                                                         \
+      auth.no_user_interaction b true                                                       \
+      options s "$OPTS") || ret=$?
 
   if [[ $ret -ne 0 ]]; then
+    send_steam_url "system/devicemountresult" "${DEVBASE}/${ret}"
     echo "Error mounting ${DEVICE} -- (status = $ret)"
     echo "--- $[reply] ---"
     exit 1
@@ -119,11 +131,22 @@ do_mount()
     exit 2
   fi
 
+  # Create a symlink from /run/media to keep compatibility with apps
+  # that use the older mount point (for SD cards only).
+  case "${DEVBASE}" in
+    mmcblk0p*)
+      if [[ -z "${ID_FS_LABEL}" ]]; then
+	old_mount_point="/run/media/${DEVBASE}"
+      else
+        old_mount_point="/run/media/${mount_point##*/}"
+      fi
+      if [[ ! -d "${old_mount_point}" ]]; then
+        rm -f -- "${old_mount_point}"
+        ln -s -- "${mount_point}" "${old_mount_point}"
+      fi
+      ;;
+    esac
   echo "Mounted ${DEVICE} at ${mount_point}"
-
-  if [ -d "${mount_point}/lost+found" ]; then
-    rm -rf "${mount_point}/lost+found"
-  fi
 
   # Check if this is a steam library.
   steamapps_dir="${mount_point}/steamapps"
@@ -141,8 +164,14 @@ do_unmount()
 {
   # If Steam is running, notify it
   local mount_point=$(findmnt -fno TARGET "${DEVICE}" || true)
-  [[ -n $mount_point ]] || return 0
-  send_steam_url "removelibraryfolder" $mount_point
+  if [[ -n $mount_point ]]; then
+    send_steam_url "removelibraryfolder" "${mount_point}"
+    # Remove symlink to the mount point that we're unmounting
+    find /run/media -maxdepth 1 -xdev -type l -lname "${mount_point}" -exec rm -- {} \;
+  else
+    # If we don't know the mount point then remove all broken symlinks
+    find /run/media -maxdepth 1 -xdev -xtype l -exec rm -- {} \;
+  fi
 }
 
 do_retrigger()
