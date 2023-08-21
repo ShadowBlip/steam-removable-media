@@ -3,21 +3,38 @@
 
 set -e
 
+# If the script is not run from a tty then send a copy of stdout and
+# stderr to the journal. In this case stderr is also redirected to stdout.
+if ! tty -s; then
+    exec 8>&1
+    exec &> >(tee /dev/fd/8 | logger -t steam-removable-media-format-device)
+fi
+
 RUN_VALIDATION=1
 EXTENDED_OPTIONS="nodiscard"
 
-OPTS=$(getopt -l force,skip-validation,full,quick,device: -n format-media.sh -- "" "$@")
+# default owner for the new filesystem
+OWNER="1000:1000"
+EXTRA_MKFS_ARGS=()
+
+# Increase the version number every time a new option is added
+VERSION_NUMBER=1
+
+OPTS=$(getopt -l version,force,skip-validation,full,quick,owner:,device:,label: -n format-device.sh -- "" "$@")
 
 eval set -- "$OPTS"
 
 while true; do
     case "$1" in
-        --force) RUN_VALIDATION=0; shift ;;
-        --skip-validation) RUN_VALIDATION=0; shift ;;
-        --full) EXTENDED_OPTIONS="discard"; shift ;;
-        --quick) EXTENDED_OPTIONS="nodiscard"; shift ;;
-        --device) STORAGE_DEVICE="$2"; shift 2 ;;
-        --) shift; break ;;
+	--version) echo $VERSION_NUMBER; exit 0 ;;
+	--force) RUN_VALIDATION=0; shift ;;
+	--skip-validation) RUN_VALIDATION=0; shift ;;
+	--full) EXTENDED_OPTIONS="discard"; shift ;;
+	--quick) EXTENDED_OPTIONS="nodiscard"; shift ;;
+	--owner) OWNER="$2"; shift 2;;
+	--label) EXTRA_MKFS_ARGS+=(-L "$2"); shift 2 ;;
+	--device) STORAGE_DEVICE="$2"; shift 2 ;;
+	--) shift; break ;;
     esac
 done
 
@@ -25,24 +42,26 @@ if [[ "$#" -gt 0 ]]; then
     echo "Unknown option $1"; exit 22
 fi
 
+EXTENDED_OPTIONS="$EXTENDED_OPTIONS,root_owner=$OWNER"
+
 # NVME and MMCBLK devices use a p1 prefix
 case "$STORAGE_DEVICE" in
     "")
-        echo "Usage: $(basename $0) [--force] [--skip-validation] [--full] [--quick] --device <device>"
-        exit 19 #ENODEV
+	echo "Usage: $(basename $0) [--version] [--force] [--skip-validation] [--full] [--quick] [--owner <uid>:<gid>] [--label <label>] --device <device>"
+	exit 19 #ENODEV
         ;;
     /dev/mmcblk?)
-        STORAGE_PARTITION="${STORAGE_DEVICE}p1"
-        ;;
+	STORAGE_PARTITION="${STORAGE_DEVICE}p1"
+	;;
     /dev/nvme?)
-        STORAGE_PARTITION="${STORAGE_DEVICE}p1"
-        ;;
+	STORAGE_PARTITION="${STORAGE_DEVICE}p1"
+	;;
     /dev/sd?)
-        STORAGE_PARTITION="${STORAGE_DEVICE}1"
-        ;;
+	STORAGE_PARTITION="${STORAGE_DEVICE}1"
+	;;
     *)
-        echo "Unknown or unsupported device: $STORAGE_DEVICE"
-        exit 19 #ENODEV
+	echo "Unknown or unsupported device: $STORAGE_DEVICE"
+	exit 19 #ENODEV
 esac
 
 if [[ ! -e "$STORAGE_DEVICE" ]]; then
@@ -80,12 +99,12 @@ if [ ! -z "$MOUNTS" ]; then
         do
             if [ "$mounted_partition" = "$fstab_mount" ]; then
                 echo "$STORAGE_DEVICE is mounted on $mounted_partition as part of /etc/fstab. Aborting..."
-                exit 5
+                exit 32
             fi
         done
         if ! umount $mounted_partition > /dev/null; then
             echo "Failed to unmount $mounted_partition."
-            exit 5
+            exit 32
         fi
     done
 fi
