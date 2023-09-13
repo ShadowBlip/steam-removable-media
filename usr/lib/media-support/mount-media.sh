@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Originally from https://serverfault.com/a/767079
 # Modified from SteamOS 3 steamos-automount.sh
 # This script is called from our systemd unit file to mount or unmount
 # a system drive.
@@ -109,10 +108,10 @@ do_mount()
       auth.no_user_interaction b true                                                       \
       options s "$OPTS") || ret=$?
 
+  # Report to Steam if we failed to mount the device.
   if [[ $ret -ne 0 ]]; then
     send_steam_url "system/devicemountresult" "${DEVBASE}/${ret}"
     echo "Error mounting ${DEVICE} -- (status = $ret)"
-    echo "--- $[reply] ---"
     exit 1
   fi
 
@@ -122,7 +121,13 @@ do_mount()
   if [[ -z $mount_point ]]; then
     echo "Error when mounting ${DEVICE}: udisks returned success but could not parse reply:"
     echo "--- $[reply] ---"
-    exit 2
+    exit 1
+  fi
+
+  # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
+  if [[ ${ID_FS_TYPE} != "ext4" ]]; then
+      echo "Cannot add ${DEVICE} as steam library: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
+      exit 0
   fi
 
   # Create a symlink from /run/media to keep compatibility with apps
@@ -140,19 +145,13 @@ do_mount()
       fi
       ;;
     esac
-  echo "Mounted ${DEVICE} at ${mount_point}"
 
-  # We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
-    if [[ ${ID_FS_TYPE} != "ext4" ]]; then
-        echo "Cannot add ${DEVICE} as steam library: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
-        exit 0
-    fi
-
+  echo "**** Mounted ${DEVICE} at ${mount_point} ****"
   # Check if this is a steam library.
   steamapps_dir="${mount_point}/steamapps"
   if [ ! -d ${steamapps_dir} ]; then
     echo "Unable to find a steamapps dir. Device is not a library. Run init-media to build steam library. Nothing else to do."
-    return
+    exit 0
   # If Steam is running, notify it.
   else
     send_steam_url "addlibraryfolder" $mount_point

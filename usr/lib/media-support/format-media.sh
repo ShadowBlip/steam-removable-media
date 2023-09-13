@@ -174,7 +174,7 @@ flock -u "$MOUNT_LOCK_FD"
 if ! systemctl start media-mount@"$STORAGE_PARTBASE".service; then
     echo "Failed to start mount service"
     journalctl --no-pager --boot=0 -u media-mount@"$STORAGE_PARTBASE".service
-    exit 5
+    exit 53
 fi
 
 echo "All tasks done."
