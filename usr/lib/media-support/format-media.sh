@@ -6,8 +6,8 @@ set -e
 # If the script is not run from a tty then send a copy of stdout and
 # stderr to the journal. In this case stderr is also redirected to stdout.
 if ! tty -s; then
-    exec 8>&1
-    exec &> >(tee /dev/fd/8 | logger -t steam-removable-media-format-device)
+	exec 8>&1
+	exec &> >(tee /dev/fd/8 | logger -t steam-removable-media-format-device)
 fi
 
 RUN_VALIDATION=1
@@ -25,52 +25,78 @@ OPTS=$(getopt -l version,force,skip-validation,full,quick,owner:,device:,label: 
 eval set -- "$OPTS"
 
 while true; do
-    case "$1" in
-	--version) echo $VERSION_NUMBER; exit 0 ;;
-	--force) RUN_VALIDATION=0; shift ;;
-	--skip-validation) RUN_VALIDATION=0; shift ;;
-	--full) EXTENDED_OPTIONS="discard"; shift ;;
-	--quick) EXTENDED_OPTIONS="nodiscard"; shift ;;
-	--owner) OWNER="$2"; shift 2;;
-	--label) EXTRA_MKFS_ARGS+=(-L "$2"); shift 2 ;;
-	--device) STORAGE_DEVICE="$2"; shift 2 ;;
-	--) shift; break ;;
-    esac
+	case "$1" in
+	--version)
+		echo $VERSION_NUMBER
+		exit 0
+		;;
+	--force)
+		RUN_VALIDATION=0
+		shift
+		;;
+	--skip-validation)
+		RUN_VALIDATION=0
+		shift
+		;;
+	--full)
+		EXTENDED_OPTIONS="discard"
+		shift
+		;;
+	--quick)
+		EXTENDED_OPTIONS="nodiscard"
+		shift
+		;;
+	--owner)
+		OWNER="$2"
+		shift 2
+		;;
+	--label)
+		EXTRA_MKFS_ARGS+=(-L "$2")
+		shift 2
+		;;
+	--device)
+		STORAGE_DEVICE="$2"
+		shift 2
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
 done
 
 if [[ "$#" -gt 0 ]]; then
-    echo "Unknown option $1"; exit 22
+	echo "Unknown option $1"
+	exit 22
 fi
 
 EXTENDED_OPTIONS="$EXTENDED_OPTIONS,root_owner=$OWNER"
 
 # NVME and MMCBLK devices use a p1 prefix
 case "$STORAGE_DEVICE" in
-    "")
+"")
 	echo "Usage: $(basename $0) [--version] [--force] [--skip-validation] [--full] [--quick] [--owner <uid>:<gid>] [--label <label>] --device <device>"
 	exit 19 #ENODEV
-        ;;
-    /dev/mmcblk?)
+	;;
+/dev/mmcblk? | /dev/nvme? | /dev/nvmen?)
 	STORAGE_PARTITION="${STORAGE_DEVICE}p1"
 	;;
-    /dev/nvme?)
-	STORAGE_PARTITION="${STORAGE_DEVICE}p1"
-	;;
-    /dev/sd?)
+/dev/sd?)
 	STORAGE_PARTITION="${STORAGE_DEVICE}1"
 	;;
-    *)
+*)
 	echo "Unknown or unsupported device: $STORAGE_DEVICE"
 	exit 19 #ENODEV
+	;;
 esac
 
 if [[ ! -e "$STORAGE_DEVICE" ]]; then
-    exit 19 #ENODEV
+	exit 19 #ENODEV
 fi
 
 # Prompt user is device is internal
 if [[ $(lsblk -d -n -r -o hotplug "$STORAGE_DEVICE") != "1" ]]; then
-    echo "WARNING! $STORAGE_DEVICE is not a hotplug device and may be a system drive."
+	echo "WARNING! $STORAGE_DEVICE is not a hotplug device and may be a system drive."
 fi
 
 STORAGE_PARTBASE="${STORAGE_PARTITION#/dev/}"
@@ -81,32 +107,30 @@ systemctl stop media-mount@"$STORAGE_PARTBASE".service
 #
 # NOTE: Uses a shared lock filename between this and the auto-mount script to ensure we're not double-triggering nor
 # automounting while formatting or vice-versa.
-MOUNT_LOCK="/var/run/media-automount-${STORAGE_PARTBASE//\/_}.lock"
+MOUNT_LOCK="/var/run/media-automount-${STORAGE_PARTBASE//\/_/}.lock"
 MOUNT_LOCK_FD=9
 exec 9<>"$MOUNT_LOCK"
 
 if ! flock -n "$MOUNT_LOCK_FD"; then
-    echo "Failed to obtain lock $MOUNT_LOCK, failing"
-    exit 5
+	echo "Failed to obtain lock $MOUNT_LOCK, failing"
+	exit 5
 fi
 
 # Unmount any existing partitions.
 MOUNTS=$(df -h | grep $STORAGE_DEVICE | awk '{print $6}')
 if [ ! -z "$MOUNTS" ]; then
-    for mounted_partition in $MOUNTS
-    do
-        for fstab_mount in $(cat /etc/fstab | awk '{ print $2 }')
-        do
-            if [ "$mounted_partition" = "$fstab_mount" ]; then
-                echo "$STORAGE_DEVICE is mounted on $mounted_partition as part of /etc/fstab. Aborting..."
-                exit 32
-            fi
-        done
-        if ! umount $mounted_partition > /dev/null; then
-            echo "Failed to unmount $mounted_partition."
-            exit 32
-        fi
-    done
+	for mounted_partition in $MOUNTS; do
+		for fstab_mount in $(cat /etc/fstab | awk '{ print $2 }'); do
+			if [ "$mounted_partition" = "$fstab_mount" ]; then
+				echo "$STORAGE_DEVICE is mounted on $mounted_partition as part of /etc/fstab. Aborting..."
+				exit 32
+			fi
+		done
+		if ! umount $mounted_partition >/dev/null; then
+			echo "Failed to unmount $mounted_partition."
+			exit 32
+		fi
+	done
 fi
 
 # Test the sdcard
@@ -114,40 +138,40 @@ fi
 # which can result in data loss or other unexpected behaviour. It is
 # best to try to detect these issues as early as possible.
 if [[ "$RUN_VALIDATION" != "0" ]]; then
-    echo "stage=testing"
-    if ! f3probe --destructive "$STORAGE_DEVICE"; then
-        # Fake sdcards tend to only behave correctly when formatted as exfat
-        # The tricks they try to pull fall apart with any other filesystem and
-        # it renders the card unusuable.
-        #
-        # Here we restore the card to exfat so that it can be used with other devices.
-        # It won't be usable with the deck, and usage of the card will most likely
-        # result in data loss. We return a special error code so we can surface
-        # a specific error to the user.
-        echo "stage=rescuing"
-        echo "Bad sdcard - rescuing"
-        for i in {1..3}; do # Give this a couple of tries since it fails sometimes
-            echo "Create partition table: $i"
-            dd if=/dev/zero of="$STORAGE_DEVICE" bs=512 count=1024 # see comment in similar statement below
-            if ! parted --script "$STORAGE_DEVICE" mklabel msdos mkpart primary 0% 100% ; then
-                echo "Failed to create partition table: $i"
-                continue # try again
-            fi
+	echo "stage=testing"
+	if ! f3probe --destructive "$STORAGE_DEVICE"; then
+		# Fake sdcards tend to only behave correctly when formatted as exfat
+		# The tricks they try to pull fall apart with any other filesystem and
+		# it renders the card unusuable.
+		#
+		# Here we restore the card to exfat so that it can be used with other devices.
+		# It won't be usable with the deck, and usage of the card will most likely
+		# result in data loss. We return a special error code so we can surface
+		# a specific error to the user.
+		echo "stage=rescuing"
+		echo "Bad sdcard - rescuing"
+		for i in {1..3}; do # Give this a couple of tries since it fails sometimes
+			echo "Create partition table: $i"
+			dd if=/dev/zero of="$STORAGE_DEVICE" bs=512 count=1024 # see comment in similar statement below
+			if ! parted --script "$STORAGE_DEVICE" mklabel msdos mkpart primary 0% 100%; then
+				echo "Failed to create partition table: $i"
+				continue # try again
+			fi
 
-            echo "Create exfat filesystem: $i"
-            sync
-            if ! mkfs.exfat "$STORAGE_PARTITION"; then
-                echo "Failed to exfat filesystem: $i"
-                continue # try again
-            fi
+			echo "Create exfat filesystem: $i"
+			sync
+			if ! mkfs.exfat "$STORAGE_PARTITION"; then
+				echo "Failed to exfat filesystem: $i"
+				continue # try again
+			fi
 
-            echo "Successfully restored device"
-            break
-        done
+			echo "Successfully restored device"
+			break
+		done
 
-        # Return a specific error code so the UI can warn the user about this bad device
-        exit 14 # EFAULT
-    fi
+		# Return a specific error code so the UI can warn the user about this bad device
+		exit 14 # EFAULT
+	fi
 fi
 
 # Clear out the garbage bits generated by f3probe from the partition table sectors
@@ -172,9 +196,9 @@ echo "Mounting device."
 # trigger the mount service
 flock -u "$MOUNT_LOCK_FD"
 if ! systemctl start media-mount@"$STORAGE_PARTBASE".service; then
-    echo "Failed to start mount service"
-    journalctl --no-pager --boot=0 -u media-mount@"$STORAGE_PARTBASE".service
-    exit 53
+	echo "Failed to start mount service"
+	journalctl --no-pager --boot=0 -u media-mount@"$STORAGE_PARTBASE".service
+	exit 53
 fi
 
 echo "All tasks done."
