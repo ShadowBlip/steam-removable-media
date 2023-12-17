@@ -65,18 +65,18 @@ do_mount() {
 	# Identify drive to check if it is managed by fstab or alreay mounted.
 	DEVICE_UUID=$(blkid -o value -s UUID ${DEVICE})
 
-	# Avoid mount if part of fstab but not yet mounted.
-	for FSTAB_UUID in $(cat /etc/fstab | awk '{ print $1 }' | cut -d "=" -f 2); do
-		if [ "$DEVICE_UUID" = "$FSTAB_UUID" ]; then
-			echo "$MEDIA is mounted as part of /etc/fstab. Aborting..."
-			exit 0
-		fi
-	done
-
 	# Get info for this drive: $ID_FS_LABEL, and $ID_FS_TYPE
 	dev_json=$(lsblk -o PATH,LABEL,FSTYPE --json -- "$DEVICE" | jq '.blockdevices[0]')
 	ID_FS_LABEL=$(jq -r '.label | select(type == "string")' <<<"$dev_json")
 	ID_FS_TYPE=$(jq -r '.fstype | select(type == "string")' <<<"$dev_json")
+
+	# Avoid mount if part of fstab but not yet mounted.
+	for FSTAB_ENTRY in $(cat /etc/fstab | awk '{ print $1 }' | cut -d "=" -f 2); do
+		if [ "$DEVICE_UUID" = "$FSTAB_ENTRY" ] || [ "$ID_FS_LABEL" = "$FSTAB_ENTRY" ]; then
+			echo "$DEVICE is mounted as part of /etc/fstab. Nothing to do."
+			exit 0
+		fi
+	done
 
 	# Global mount options
 	OPTS="rw,noatime"
