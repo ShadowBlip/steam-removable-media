@@ -72,8 +72,8 @@ do_mount() {
 
 	# Avoid mount if part of fstab but not yet mounted.
 	for FSTAB_ENTRY in $(cat /etc/fstab | awk '{ print $1 }' | cut -d "=" -f 2); do
-		if [ "$DEVICE_UUID" = "$FSTAB_ENTRY" ] || [ "$DEVICE_ENTRY" = "$ID_FS_LABEL" ]; then
-			echo "$MEDIA is mounted as part of /etc/fstab. Aborting..."
+		if [ "$DEVICE_UUID" = "$FSTAB_ENTRY" ] || [ "$ID_FS_LABEL" = "$FSTAB_ENTRY" ]; then
+			echo "$DEVICE is mounted as part of /etc/fstab. Nothing to do."
 			exit 0
 		fi
 	done
