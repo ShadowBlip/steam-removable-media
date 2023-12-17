@@ -78,6 +78,12 @@ do_mount() {
 	ID_FS_LABEL=$(jq -r '.label | select(type == "string")' <<<"$dev_json")
 	ID_FS_TYPE=$(jq -r '.fstype | select(type == "string")' <<<"$dev_json")
 
+	# We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
+	if [[ ${ID_FS_TYPE} != "ext4" ]]; then
+		echo "Cannot add ${DEVICE} as steam library: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
+		exit 0
+	fi
+
 	# Global mount options
 	OPTS="rw,noatime"
 
@@ -116,12 +122,6 @@ do_mount() {
 		echo "Error when mounting ${DEVICE}: udisks returned success but could not parse reply:"
 		echo "--- $((reply)) ---"
 		exit 1
-	fi
-
-	# We need symlinks for Steam for now, so only automount ext4 as that'll Steam will format right now
-	if [[ ${ID_FS_TYPE} != "ext4" ]]; then
-		echo "Cannot add ${DEVICE} as steam library: wrong fstype: ${ID_FS_TYPE} - ${dev_json}"
-		exit 0
 	fi
 
 	# Create a symlink from /run/media to keep compatibility with apps
