@@ -78,6 +78,11 @@ do_mount() {
 		fi
 	done
 
+	# Ignore partitions with no FS type such as MSR
+	if [[ ${ID_FS_TYPE} == "" ]]; then
+		exit 0
+	fi
+
 	# Global mount options
 	OPTS="rw,noatime"
 
